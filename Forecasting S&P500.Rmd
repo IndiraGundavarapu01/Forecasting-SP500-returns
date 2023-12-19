@@ -1,0 +1,210 @@
+---
+title: "project"
+author: "Indira Lakshmi Gundavarapu"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+# install.packages ("quantmod")
+library (quantmod)
+library(ggplot2)
+library(forecast)
+library(zoo)
+```
+
+```{r}
+# getSymbols ("META")
+getSymbols("^GSPC", from="2000-01-01")
+spx_monthly <- to.monthly(GSPC, OHLC = FALSE)
+spx_monthly = spx_monthly$GSPC.Adjusted
+```
+
+```{r}
+plot(spx_monthly, main="SPX Closing price", ylabel ='Price')
+```
+
+```{r}
+model0 = tslm(data.ts~trend)
+
+autoplot(data.ts)+
+  geom_line(aes(y=model0$fitted.values), col = 2)
+```
+
+```{r}
+data.ts = ts(spx_monthly, start =  c(2000, 1), frequency =12)
+train.ts = window(data.ts, end = c(2022,12))
+valid.ts = window(data.ts, start = c(2023,1))
+```
+
+
+```{r}
+nValid = 11
+# fit a Holt-Winter's model
+zzz = ets(train.ts, model = 'ZZZ')
+#plot the results
+zzz.pred = forecast.ets(zzz, h = nValid, level = c(80, 95))
+zzz.pred
+
+# calculate the model accuracy
+accuracy(zzz.pred, valid.ts)
+
+zzz.pred[1]
+```
+
+```{r}
+# Plot the forecast
+autoplot(zzz.pred) + 
+  ggtitle("Forecasts from ES Holt-Winters (M,N,N) ") +
+  xlab("Time") + ylab("Adj Close")
+```
+
+```{r}
+train.ts = window(data.ts, start = c(2015,1), end = c(2022,12))
+valid.ts = window(data.ts, start = c(2023,1))
+```
+
+
+
+```{r}
+par(mfrow = c(1,2))
+Acf(train.ts, 36, main="")
+Pacf(train.ts, 36,  main="")
+```
+ACF looks like tailing off, while PACF is cutting off after lag 1. That suggests autoregressive model AR(1,0,0)
+However someone might say that PACF also tails off which is ARMA AR(1,0,1)
+We will also try SARIMA
+
+
+```{r}
+m1 = Arima(train.ts, order = c(1,0,0), include.drift = TRUE)
+summary(m1)
+m1.p = forecast(m1, h = length(valid.ts))
+print(m1.p)
+accuracy(m1.p, valid.ts)
+checkresiduals(m1.p)
+```
+
+```{r}
+m2 = Arima(train.ts, order = c(1,0,1), include.drift = TRUE )
+summary(m2)
+m2.p = forecast(m2, h = length(valid.ts))
+print(m2.p)
+accuracy(m2.p, valid.ts)
+checkresiduals(m2.p)
+```
+```{r}
+par(mfrow = c(1,2))
+Acf(diff(train.ts, 12), 36, main="ACF")
+Pacf(diff(train.ts, 12), 36,  main="PACF")
+```
+
+```{r}
+m3 = Arima(train.ts, order = c(1,0,0), seasonal = list(order=c(1,0,0), period = 12),include.drift = TRUE )
+summary(m3)
+m3.p = forecast(m3, h = length(valid.ts))
+print(m3.p)
+accuracy(m3.p, valid.ts)
+checkresiduals(m3.p)
+```
+```{r}
+m4 = Arima(train.ts, order = c(1,0,0), seasonal = list(order=c(1,0,1), period = 12),include.drift = TRUE )
+summary(m4)
+m4.p = forecast(m4, h = length(valid.ts))
+print(m4.p)
+accuracy(m4.p, valid.ts)
+checkresiduals(m4.p)
+```
+```{r}
+m5 = Arima(train.ts, order = c(1,0,1), seasonal = list(order=c(1,0,1), period = 12),include.drift = TRUE )
+summary(m4)
+m5.p = forecast(m5, h = length(valid.ts))
+print(m5.p)
+accuracy(m5.p, valid.ts)
+checkresiduals(m5.p)
+```
+
+
+```{r}
+autoplot(m4.p)+autolayer(valid.ts)
+```
+
+```{r}
+data.ts = window(data.ts, start = c(2000,1), end = c(2023,10))
+```
+
+
+```{r}
+getSymbols("^TNX", from="2000-01-01", to ="2023-11-01")
+tnx_monthly <- to.monthly(TNX, OHLC = FALSE)
+tnx_monthly = tnx_monthly$TNX.Adjusted
+tnx.ts = ts(tnx_monthly, start =  c(2000, 1), frequency =12)
+```
+
+
+```{r}
+tnx.ts 
+```
+
+```{r}
+getSymbols("CPIAUCSL", from="2000-01-01", src = "FRED")
+cpi_monthly <- to.monthly(CPIAUCSL, OHLC = FALSE)
+cpi.ts = ts(cpi_monthly, start =  c(2000, 1), frequency =12)
+cpi.ts
+```
+```{r}
+getSymbols("UNRATE", from="2000-01-01", src = "FRED")
+unrate_monthly <- to.monthly(UNRATE, OHLC = FALSE)
+unrate.ts = ts(unrate_monthly, start =  c(2000, 1), frequency =12)
+unrate.ts
+```
+```{r}
+plot(tnx.ts, main="10-Year Treasury Note Yield", ylab="Yield (%)")
+plot(cpi.ts, main="Consumer Price Index", ylab="Index Value")
+plot(unrate.ts, main="Unemployment Rate", ylab="Rate (%)")
+```
+```{r}
+pairs(cbind(T_bond = tnx.ts, CPI = cpi.ts, Unrate = unrate.ts))
+```
+```{r}
+data.ts
+```
+
+```{r}
+# ccf_result <- ccf(tnx_monthly$TNX.Adjusted, spx_monthly$GSPC.Adjusted, lag.max=24, plot=TRUE)
+# ccf_result
+```
+```{r}
+trend = time(data.ts)
+lm1 =tslm(data.ts ~ trend + tnx.ts + cpi.ts + unrate.ts)
+summary(lm1)
+summary(lm1)$adj.r.squared
+```
+
+```{r}
+accuracy(lm1$fitted.values, data.ts)
+```
+
+```{r}
+par(mfrow = c(1,2))
+Acf(data.ts)
+Pacf(data.ts)
+```
+
+```{r}
+qqplot(lm1$fitted.values, data.ts)
+abline(0, 1, col = "red")
+```
+```{r}
+plot(fitted(lm1), residuals(lm1))
+abline(h = 0, col = "red")
+```
+```{r}
+boxplot(data.ts~cycle(data.ts))
+```
+
+```{r}
+plot(data.ts)
+lines(lm1$fitted.values, col = 2)
+```
+
