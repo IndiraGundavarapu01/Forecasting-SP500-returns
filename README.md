@@ -1,7 +1,3 @@
-Sure, here is the reformatted project report using the provided template:
-
----
-
 ### 1. Project Title
 **Forecasting S&P 500 Returns: Analyzing Underlying Market Patterns**
 
@@ -45,7 +41,3 @@ Sure, here is the reformatted project report using the provided template:
 - **Model Refinement:** Address outliers and heteroscedasticity in the multiple linear regression model to improve accuracy.
 - **Additional Indicators:** Incorporate more macroeconomic factors and geopolitical events to enhance predictive power.
 - **Regular Updates:** Continuously update models with new data to maintain relevance and accuracy.
-
----
-
-This structured format provides a clear and concise overview of the project, its methodology, and findings, aligned with the provided template.
